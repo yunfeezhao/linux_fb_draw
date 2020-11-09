@@ -32,7 +32,12 @@ int fd,mx=360,my=360;
 unsigned char *addr;
 struct fb_var_screeninfo vinfo;
 int style = 0;
+extern int type;
 pthread_t ntid;
+void show(void){
+	draw_circle (mx, my, 5);
+	memcpy(addr, buff_show, 1280 * 720 * 2);
+}
 void initset(void)
 {
 	int fd;
@@ -49,13 +54,19 @@ void initset(void)
 	printf("screensize:%d\n", screensize);
 	addr = (unsigned char *)mmap(0, screensize,
 				     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	int err = pthread_create(&ntid,NULL,mose,NULL);
+    if(err!=0)
+   {
+       printf("thread_create Failed:%s\n",strerror(err));
 
+   }else{
+		printf("thread_create success\n");
+   }
 }
 
 void clear(void)
 {
-	printf("Clearing screen.\n");
-	bzero(addr, vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8);
+	bzero(buff_show, vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8);
 }
 
 void setcolor(unsigned char Red, unsigned char Green, unsigned char Blue)
@@ -89,9 +100,10 @@ void setbkcolor(unsigned char Red, unsigned char Green, unsigned char Blue)
 	color = RGB565(Red, Green, Blue);
 	for (x = 0; x < vinfo.xres; x++) {
 		for (y = 0; y < vinfo.yres; y++) {
-			dot(x, y);
+			dottobuff(x, y);
 		}
 	}
+	memcpy(addr, buff_show, 1280 * 720 * 2);
 }
 
 void setlinestyle(int sty)
@@ -105,8 +117,9 @@ void circle(int x, int y, int r)
 	for (i = 0; i < 360; i++) {
 		xtemp = x + r * cos(i * PI / 180);
 		ytemp = y + r * sin(i * PI / 180);
-		dot(xtemp, ytemp);
+		dottobuff(xtemp, ytemp);
 	}
+
 }
 
 void line(int x1, int y1, int x2, int y2)
@@ -123,7 +136,7 @@ void line(int x1, int y1, int x2, int y2)
 					y2 = i;
 				}
 				for (i = y1; i <= y2; i++)
-					dot(x1, i);
+					dottobuff(x1, i);
 			} else if (abs(x1 - x2) >= abs(y1 - y2)) {
 				k = 1.0 * (y2 - y1) / (x2 - x1);
 				if (x1 > x2)	//swap x,y 
@@ -136,7 +149,7 @@ void line(int x1, int y1, int x2, int y2)
 					y2 = i;
 				}
 				for (i = x1; i <= x2; i++) {
-					dot(i, (y1 + (i - x1) * k));
+					dottobuff(i, (y1 + (i - x1) * k));
 				}
 			} else {
 				k = 1.0 * (x2 - x1) / (y2 - y1);
@@ -149,7 +162,7 @@ void line(int x1, int y1, int x2, int y2)
 					y2 = i;
 				}
 				for (i = y1; i <= y2; i++) {
-					dot((x1 + (i - y1) * k), i);
+					dottobuff((x1 + (i - y1) * k), i);
 				}
 			}
 		}
@@ -162,7 +175,7 @@ void line(int x1, int y1, int x2, int y2)
 					y2 = i;
 				}
 				for (i = y1; i <= y2; i += 2)
-					dot(x1, i);
+					dottobuff(x1, i);
 			} else if (abs(x1 - x2) >= abs(y1 - y2)) {
 				k = 1.0 * (y2 - y1) / (x2 - x1);
 				if (x1 > x2)	//swap x,y
@@ -175,7 +188,7 @@ void line(int x1, int y1, int x2, int y2)
 					y2 = i;
 				}
 				for (i = x1; i <= x2; i += 2) {
-					dot(i, (y1 + (i - x1) * k));
+					dottobuff(i, (y1 + (i - x1) * k));
 				}
 			} else {
 				k = 1.0 * (x2 - x1) / (y2 - y1);
@@ -188,12 +201,13 @@ void line(int x1, int y1, int x2, int y2)
 					y2 = i;
 				}
 				for (i = y1; i <= y2; i += 2) {
-					dot((x1 + (i - y1) * k), i);
+					dottobuff((x1 + (i - y1) * k), i);
 				}
 			}
 
 		}
 	}
+	memcpy(addr, buff_show, 1280 * 720 * 2);
 }
 
 void rect(int x1, int y1, int x2, int y2)
@@ -220,9 +234,9 @@ void *mose(void *arg){
 			char buf[6];
 			fd_set readfds;
 			struct timeval tv;
-			// ´ò¿ªÊó±êÉè±¸
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½è±¸
 			fd = open("/dev/input/mice", O_RDONLY);
-			// ÅÐ¶ÏÊÇ·ñ´ò¿ª³É¹¦
+			// ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ò¿ª³É¹ï¿½
 			if (fd < 0) {
 				printf("Failed to open \"/dev/input/mice\".\n");
 				exit(1);
@@ -232,7 +246,7 @@ void *mose(void *arg){
 			}	
 			
 		while(1){
-			// ÉèÖÃ×î³¤µÈ´ýÊ±¼ä
+			// ï¿½ï¿½ï¿½ï¿½ï¿½î³¤ï¿½È´ï¿½Ê±ï¿½ï¿½
 			tv.tv_sec = 5;
 			tv.tv_usec = 0;
 
@@ -244,13 +258,14 @@ void *mose(void *arg){
 				printf("Time out!\n");
 			}
 			if (FD_ISSET(fd, &readfds)) {
-				// ¶ÁÈ¡Êó±êÉè±¸ÖÐµÄÊý¾Ý
+				// ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½è±¸ï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½
 				if (read(fd, buf, 6) <= 0) {
 					continue;
 				}
-				// ´òÓ¡³ö´ÓÊó±êÉè±¸ÖÐ¶ÁÈ¡µ½µÄÊý¾Ý
+				// ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½è±¸ï¿½Ð¶ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				printf("Button type = %d, X = %d, Y = %d, Z = %d\n", (buf[0] & 0x07), mx, my, buf[3]);
 			}
+			type=buf[0] & 0x07;
 			if (buf[1] & 0x80) mx = mx +  (buf[1] - 256);
 			else mx = mx + buf[1];
 			if (buf[2] & 0x80) my = my - (buf[2]- 256);
@@ -270,26 +285,16 @@ void display_bmp(char *path)
 	int file, x, y;
 
 
-	int h[700][2]= {0};//Ê±Õë
-	int m[750][2] = { 0 };//·ÖÕë
-	int s[600][2] = { 0 };//ÃëÕë
+	int h[700][2]= {0};//Ê±ï¿½ï¿½
+	int m[750][2] = { 0 };//ï¿½ï¿½ï¿½ï¿½
+	int s[600][2] = { 0 };//ï¿½ï¿½ï¿½ï¿½
 
 	clock_t start,end;
-	time_t now; //ÊµÀý»¯time_t½á¹¹ 
-	struct tm* timenow; //ÊµÀý»¯tm½á¹¹Ö¸Õë 
-	time(&now);    //timeº¯Êý¶ÁÈ¡ÏÖÔÚµÄÊ±¼ä(¹ú¼Ê±ê×¼Ê±¼ä·Ç±±¾©Ê±¼ä)£¬È»ºó´«Öµ¸ønow 
-	timenow = localtime(&now); //localtimeº¯Êý°Ñ´ÓtimeÈ¡µÃµÄÊ±¼änow»»Ëã³ÉÄãµçÄÔÖÐµÄÊ±¼ä(¾ÍÊÇÄãÉèÖÃµÄµØÇø) 
-	printf("Local time is %s\n", asctime(timenow)); //ÉÏ¾äÖÐasctimeº¯Êý°ÑÊ±¼ä×ª»»³É×Ö·û£¬Í¨¹ýprintf()º¯ÊýÊä³ö 
-
-
-	int err = pthread_create(&ntid,NULL,mose,NULL);
-    if(err!=0)
-   {
-       printf("thread_create Failed:%s\n",strerror(err));
-
-   }else{
-		printf("thread_create success\n");
-   }
+	time_t now; //Êµï¿½ï¿½ï¿½ï¿½time_tï¿½á¹¹ 
+	struct tm* timenow; //Êµï¿½ï¿½ï¿½ï¿½tmï¿½á¹¹Ö¸ï¿½ï¿½ 
+	time(&now);    //timeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½Úµï¿½Ê±ï¿½ï¿½(ï¿½ï¿½ï¿½Ê±ï¿½×¼Ê±ï¿½ï¿½Ç±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½)ï¿½ï¿½È»ï¿½ï¿½Öµï¿½ï¿½now 
+	timenow = localtime(&now); //localtimeï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½timeÈ¡ï¿½Ãµï¿½Ê±ï¿½ï¿½nowï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Ê±ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÃµÄµï¿½ï¿½ï¿½) 
+	printf("Local time is %s\n", asctime(timenow)); //ï¿½Ï¾ï¿½ï¿½ï¿½asctimeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½Í¨ï¿½ï¿½printf()ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
 
 
 
@@ -300,13 +305,11 @@ void display_bmp(char *path)
 	}
 	lseek(file, 54, SEEK_SET);
 	read(file,backgroundbuff,1280*720*3);
-	getchar();
 	printf("blackstart\n");
 	start=clock();
 	memset(addr,0,1280*720*2);
 	end=clock();
 	printf("time=%f\n",(double)(end-start)/1000);
-	getchar();
 
 	for (x = 0; x < 100; ++x) {
 
@@ -361,7 +364,6 @@ void display_bmp(char *path)
 			color = RGB565(backgroundbuff[i+2], backgroundbuff[i+1], backgroundbuff[i]);
 			buff_show[j]=color&0xFF;
 			buff_show[j+1]=(color>>8)&0xFF;
-			//dot(x,y);
 			i=i+3;
 			j=j+2;
 		}
@@ -369,19 +371,18 @@ void display_bmp(char *path)
 	}
 	memcpy(backgroundbuff,buff_show,1280*720*2);
 	printf("beijingover\n");
-	getchar();
 
 
 	while (1) {
 		start = clock();
 		memcpy(buff_show,backgroundbuff,  1280 * 720 * 2);
 		
-		time(&now);    //timeº¯Êý¶ÁÈ¡ÏÖÔÚµÄÊ±¼ä(¹ú¼Ê±ê×¼Ê±¼ä·Ç±±¾©Ê±¼ä)£¬È»ºó´«Öµ¸ønow 
+		time(&now);    //timeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½Úµï¿½Ê±ï¿½ï¿½(ï¿½ï¿½ï¿½Ê±ï¿½×¼Ê±ï¿½ï¿½Ç±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½)ï¿½ï¿½È»ï¿½ï¿½Öµï¿½ï¿½now 
 
-		timenow = localtime(&now); //localtimeº¯Êý°Ñ´ÓtimeÈ¡µÃµÄÊ±¼änow»»Ëã³ÉÄãµçÄÔÖÐµÄÊ±¼ä(¾ÍÊÇÄãÉèÖÃµÄµØÇø) 
-		color = RGB565(240, 240, 240);//°×É«
-		printlcd(30, 20, asctime(timenow)); //asctimeº¯Êý°ÑÊ±¼ä×ª»»³É×Ö·û£¬Í¨¹ýprintf()º¯ÊýÊä³ö 
-		printlcd(1080, 680, "by zhaoyunfei 181180202"); //asctimeº¯Êý°ÑÊ±¼ä×ª»»³É×Ö·û£¬Í¨¹ýprintf()º¯ÊýÊä³ö 
+		timenow = localtime(&now); //localtimeï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½timeÈ¡ï¿½Ãµï¿½Ê±ï¿½ï¿½nowï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Ê±ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÃµÄµï¿½ï¿½ï¿½) 
+		color = RGB565(240, 240, 240);//ï¿½ï¿½É«
+		printlcd(30, 20, asctime(timenow)); //asctimeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½Í¨ï¿½ï¿½printf()ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+		printlcd(1080, 680, "by zhaoyunfei 181180202"); //asctimeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½Í¨ï¿½ï¿½printf()ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
 
 		for (i = 0; i < 700; i++) {
 
@@ -407,7 +408,7 @@ void display_bmp(char *path)
 
 
 
-		color = RGB565(200, 47, 47);//ºìÉ«Ö¸Õë
+		color = RGB565(200, 47, 47);//ï¿½ï¿½É«Ö¸ï¿½ï¿½
 		for (i = 0; i < 600; i++) {
 
 			x = s[i][0] * cos(2 * PI * (timenow->tm_sec-15) / 60) - s[i][1] * sin(2 * PI *( timenow->tm_sec-15) / 60);
@@ -422,14 +423,7 @@ void display_bmp(char *path)
 		usleep(20000);
 		end = clock();
 		printf("time=%f\n", (double)(end - start) / 1000);
-		
-
-	
-
-		
-			
-
-		
+		if(type==1) break;		
 	}
 
 	close(fd);
