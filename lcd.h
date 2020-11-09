@@ -38,8 +38,9 @@ typedef unsigned short TUINT16;
 #define COLOR_DIAN RGB565(0, 255, 255)
 
 #define COLOR_WHITE RGB565(255, 255, 255)
-
+void *mose(void *arg);
 void initset(void);
+void show(void);
 void clear(void);
 void dot(int, int);
 void setcolor(unsigned char, unsigned char, unsigned char);
