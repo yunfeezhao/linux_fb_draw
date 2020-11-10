@@ -113,11 +113,15 @@ void setlinestyle(int sty)
 
 void circle(int x, int y, int r)
 {
-	int xtemp, ytemp, i;
+	int xtemp, ytemp,oldx,oldy, i;
+	oldx=x+r;
+	oldy=y;
 	for (i = 0; i < 360; i++) {
 		xtemp = x + r * cos(i * PI / 180);
 		ytemp = y + r * sin(i * PI / 180);
-		dottobuff(xtemp, ytemp);
+		line(xtemp, ytemp,oldx,oldy);
+		oldx=xtemp;
+		oldy=ytemp;
 	}
 
 }
